@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+JUMP_HOST=${JUMP_HOST:-lijiyao}
+REMOTE_HOST=${REMOTE_HOST:-gpu6000}
+LOCAL_PORT=${LOCAL_PORT:-8797}
+REMOTE_PORT=${REMOTE_PORT:-8797}
+
+ssh -N -L "${LOCAL_PORT}:127.0.0.1:${REMOTE_PORT}" -J "${JUMP_HOST}" "${REMOTE_HOST}"

@@ -1,0 +1,16 @@
+Bootstrap: docker
+From: python:3.11-slim
+
+%post
+    mkdir -p /app
+
+%files
+    . /app
+
+%post
+    cd /app
+    pip install --no-cache-dir -r requirements.txt
+
+%runscript
+    cd /app
+    exec python -m uvicorn backend.app:app --host 127.0.0.1 --port 8797

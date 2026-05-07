@@ -1,0 +1,6 @@
+batch_id,measurement_date,avg_weight_g,avg_length_cm,sample_count
+BATCH_A,2026-04-01,10,8.5,100
+BATCH_A,2026-05-01,42,12.8,120
+BATCH_A,2026-06-01,120.5,18.2,120
+BATCH_B,2026-05-15,8,7.9,100
+BATCH_B,2026-06-01,21,10.5,120

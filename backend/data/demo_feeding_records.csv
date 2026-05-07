@@ -1,0 +1,4 @@
+batch_id,date,feed_type,feed_amount_kg,feeding_times,feeding_note
+BATCH_A,2026-05-30,growout_feed,520,3,normal
+BATCH_A,2026-05-31,growout_feed,535,3,normal
+BATCH_B,2026-05-31,starter_feed,260,4,normal

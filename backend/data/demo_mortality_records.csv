@@ -1,0 +1,4 @@
+batch_id,date,mortality_count,reason
+BATCH_A,2026-05-30,20,normal_loss
+BATCH_A,2026-05-31,18,normal_loss
+BATCH_B,2026-05-31,15,normal_loss
