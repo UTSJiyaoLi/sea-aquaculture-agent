@@ -3,7 +3,6 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.config import settings
 from backend.graph.builder import build_graph
 from backend.schemas.agent import AgentChatResponse
 from backend.schemas.batch import BatchProfile, BatchSummary
@@ -83,8 +82,25 @@ def production_plan(request: ProductionPlanRequest) -> dict:
 
 @app.post("/api/agent/chat", response_model=AgentChatResponse)
 def agent_chat(request: AgentChatRequest) -> dict:
-    parsed = planning_service.parse_chat_message(request.message, request.batch_id)
-    if request.use_llm:
-        parsed["use_llm"] = True
-    plan = production_plan(ProductionPlanRequest(**parsed))
-    return {"parsed_request": parsed, "plan_response": plan}
+    intent_info = planning_service.identify_intent(request.message, request.batch_id)
+    route = intent_info["route"]
+    parsed = intent_info["parsed_request"]
+    if route == "production_plan":
+        if request.use_llm:
+            parsed["use_llm"] = True
+        plan = production_plan(ProductionPlanRequest(**parsed))
+        return {
+            "intent": intent_info["intent"],
+            "route": route,
+            "parsed_request": parsed,
+            "plan_response": plan,
+            "tool_result": None,
+        }
+    tool_result = planning_service.run_reference_tool(route)
+    return {
+        "intent": intent_info["intent"],
+        "route": route,
+        "parsed_request": parsed,
+        "plan_response": None,
+        "tool_result": tool_result,
+    }

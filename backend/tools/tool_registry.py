@@ -12,3 +12,9 @@ class ToolRegistry:
 
     def get(self, name: str) -> Any:
         return self._tools[name]
+
+    def has(self, name: str) -> bool:
+        return name in self._tools
+
+    def list_tools(self) -> list[str]:
+        return sorted(self._tools.keys())

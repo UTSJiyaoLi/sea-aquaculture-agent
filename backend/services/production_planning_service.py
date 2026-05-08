@@ -4,13 +4,16 @@ import uuid
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from backend.config import ROOT_DIR
 from backend.services.data_service import CsvDataService
 from backend.tools.biomass_tool import BiomassEstimationTool
 from backend.tools.database_tool import DatabaseQueryTool
 from backend.tools.feeding_plan_tool import FeedingPlanTool
+from backend.tools.patent_fishi_tool import PatentFishiTool
 from backend.tools.report_writer_tool import ReportWriterTool
 from backend.tools.risk_rule_tool import RiskRuleTool
 from backend.tools.tool_registry import ToolRegistry
+from backend.tools.water_quality_mfpca_tool import WaterQualityMfpcaTool
 from backend.tools.water_quality_tool import WaterQualityTool
 
 
@@ -69,25 +72,67 @@ class ProductionPlanningService:
             "latest_measurement_date": latest["measurement_date"],
         }
 
+    def identify_intent(self, message: str, batch_id: str | None = None) -> dict[str, Any]:
+        lower_message = message.lower()
+        if any(token in lower_message for token in ["mfpca", "水质", "空间分析", "主成分"]):
+            return {
+                "intent": "water_quality_analysis",
+                "route": "water_quality_mfpca",
+                "parsed_request": {
+                    "batch_id": batch_id,
+                    "message": message,
+                },
+            }
+        if any(token in lower_message for token in ["patent", "fishi", "专利模型", "生态模型", "专利"]):
+            return {
+                "intent": "growth_ecology_analysis",
+                "route": "patent_fishi",
+                "parsed_request": {
+                    "batch_id": batch_id,
+                    "message": message,
+                },
+            }
+        return {
+            "intent": "production_plan",
+            "route": "production_plan",
+            "parsed_request": self.parse_chat_message(message, batch_id),
+        }
+
     def parse_chat_message(self, message: str, batch_id: str | None = None) -> dict[str, Any]:
         parsed = {
             "batch_id": batch_id or "BATCH_A",
             "horizon_days": 30,
             "target_weight_g": 600,
+            "target_date": "2026-10-30",
             "use_llm": False,
         }
-        if "BATCH_B" in message or "B批" in message.upper():
+        upper_message = message.upper()
+        lower_message = message.lower()
+
+        if "BATCH_B" in upper_message or "B批" in message or "B 批" in message:
             parsed["batch_id"] = "BATCH_B"
-        if "A批" in message.upper():
+        elif "BATCH_A" in upper_message or "A批" in message or "A 批" in message:
             parsed["batch_id"] = "BATCH_A"
-        digits = "".join(ch if ch.isdigit() else " " for ch in message).split()
-        for idx, token in enumerate(digits):
-            value = int(token)
-            if "天" in message and value <= 365:
-                parsed["horizon_days"] = value
-            if "g" in message.lower() and value >= 100:
-                parsed["target_weight_g"] = value
+
+        digits = [int(token) for token in "".join(ch if ch.isdigit() else " " for ch in message).split()]
+        if "未来" in message or "天" in message:
+            for value in digits:
+                if value <= 365:
+                    parsed["horizon_days"] = value
+                    break
+        if "g" in lower_message or "克" in message:
+            for value in digits:
+                if value >= 100:
+                    parsed["target_weight_g"] = value
+                    break
+        if "11月" in message:
+            parsed["target_date"] = "2026-11-15"
+        elif "10月" in message:
+            parsed["target_date"] = "2026-10-30"
         return parsed
+
+    def run_reference_tool(self, tool_name: str) -> dict[str, Any]:
+        return self.registry.get(tool_name).describe()
 
     def build_initial_state(self, request: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -116,4 +161,12 @@ def build_default_registry() -> ToolRegistry:
     registry.register("feeding_plan", FeedingPlanTool())
     registry.register("risk_rule", RiskRuleTool())
     registry.register("report_writer", ReportWriterTool())
+    registry.register("patent_fishi", PatentFishiTool(ROOT_DIR / "Patent_fishi.py"))
+    registry.register(
+        "water_quality_mfpca",
+        WaterQualityMfpcaTool(
+            ROOT_DIR / "MFPCA_paper.R",
+            ROOT_DIR / "Data" / "surface_data_new_nodof.csv",
+        ),
+    )
     return registry

@@ -2,15 +2,15 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
+FRONTEND_DIR="$ROOT_DIR/apps/web"
+UI_PORT="${UI_PORT:-3007}"
+LOCAL_PORT="${LOCAL_PORT:-8797}"
+API_BASE="${VITE_API_BASE_URL:-http://127.0.0.1:${LOCAL_PORT}}"
 
-if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-  # shellcheck disable=SC1090
-  source "$HOME/miniconda3/etc/profile.d/conda.sh"
-  conda activate rag_task
-else
-  echo "conda.sh not found; activate rag_task manually before running this script."
+if [ ! -f "$FRONTEND_DIR/package.json" ]; then
+  echo "Frontend package.json not found at $FRONTEND_DIR"
+  exit 1
 fi
 
-cd "$ROOT_DIR/apps/web"
-npm install
-NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL:-http://127.0.0.1:8797} npm run dev -- --port 3007
+npm --prefix "$FRONTEND_DIR" install
+VITE_API_BASE_URL="$API_BASE" npm --prefix "$FRONTEND_DIR" run dev -- --host 0.0.0.0 --port "$UI_PORT"
